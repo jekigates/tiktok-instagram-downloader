@@ -19,7 +19,7 @@
             <div class="col-xl-6 text-center pt-4">
                 <h2>TikTok Downloader</h2>
                 <div class="input-group mt-4">
-                    <input type="text" class="form-control" placeholder="Search or paste tiktok video link here" aria-label="Search or paste tiktok video link here" aria-describedby="btn-start">
+                    <input type="text" name="url" id="url" class="form-control" placeholder="Search or paste tiktok video link here" aria-label="Search or paste tiktok video link here" aria-describedby="btn-start">
                     <button class="btn btn-primary" type="button" id="btn-start">Start</button>
                 </div>
                 <p class="text-secondary mt-2">Want to download Instagram posts and videos? <a href="instagram.php" class="position-relative stretched-link">Click here</a></p>            
