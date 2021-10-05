@@ -46,7 +46,7 @@ class InstagramDownload {
      */
     public function getType(): string {
         if (!isset($this->download_url)) {
-        $this->process();
+            $this->process();
         }
         return $this->type;
     }
