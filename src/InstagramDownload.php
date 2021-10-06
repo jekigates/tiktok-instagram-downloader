@@ -11,6 +11,8 @@ class InstagramDownload {
 
 	private string $download_url;
 
+    private InvalidArgumentException $error;
+
 	/**
 	 * @var array<string>
 	 */
@@ -33,9 +35,13 @@ class InstagramDownload {
      * @throws \InvalidArgumentException
      */
     private function setUrl(string $url): void {
-        $id = $this->validateUrl($url);
-        $this->id = $id;
-        $this->input_url = $url;
+        try {
+            $id = $this->validateUrl($url);
+            $this->id = $id;
+            $this->input_url = $url;
+        } catch (\InvalidArgumentException $e) {
+            $this->error = $e;
+        }
     }
 
     /**
@@ -46,30 +52,80 @@ class InstagramDownload {
      */
     public function getType(): string {
         if (!isset($this->download_url)) {
-            $this->process();
+        $this->process();
         }
         return $this->type;
     }
-
     /**
      * @param bool $force_download
      *
      * @return string
      * @throws \RuntimeException
      */
-    public function getDownloadUrl(bool $force_download = true): string {
-        if (!isset($this->download_url)) {
-            $this->process();
+
+    public function getData(bool $force_download = true): string {
+        // if (!isset($this->download_url)) {
+        //     $this->process();
+        // }
+
+        // if ($force_download) {
+        //     if (\strpos($this->download_url, '?') !== false) {
+        //         // return $this->anakayam;
+        //         return $this->download_url . '&dl=1';
+        //     }
+            
+        //     return $this->download_url . '?dl=1';
+        // }
+        // return $this->download_url;
+
+        if (isset($this->error)) {
+            throw new Exception("Error : ".$this->error);
         }
 
-        if ($force_download) {
-            if (\strpos($this->download_url, '?') !== false) {
-                return $this->download_url . '&dl=1';
+        $pos = strpos($this->input_url, '?');
+        $url = substr($this->input_url, 0, $pos).'?__a=1';
+        return json_decode($this->fetch($url));
+
+        $post_json = json_decode($this->fetch($url))->graphql->shortcode_media;
+
+        $owner = new stdClass();
+        $owner->profile_pic_url = $post_json->owner->profile_pic_url;
+        $owner->username = $post_json->owner->username;
+
+        $data = new stdClass();
+        $data->post_comments_count = $post_json->edge_media_to_parent_comment->count;
+        $data->owner = $owner;
+        $data->is_carousel = false;
+
+        if (isset($post_json->edge_sidecar_to_children)) {
+            $post_datas = $post_json->edge_sidecar_to_children->edges;
+            $return_data = [];
+            for ($i=0; $i < count($post_datas); $i++) { 
+                $pd = new stdClass();
+                $pd->is_video = $post_datas[$i]->node->is_video;
+                $pd->thumbnail = $post_datas[$i]->node->display_url;
+                if($post_datas[$i]->node->is_video){
+                    $pd->video_url = $post_datas[$i]->node->video_url."&dl=1";
+                    $pd->video_view_count = $post_datas[$i]->node->video_view_count;
+                }else{
+                    $pd->display_resources = $post_datas[$i]->node->display_resources;
+                }
+                array_push($return_data, $pd);
             }
-
-            return $this->download_url . '?dl=1';
+            
+            $data->is_carousel = true;
+            $data->post_data = $return_data;
+        }else{
+            $data->thumbnail = $post_json->display_url;
+            if($post_json->is_video){
+                $data->video_url = $post_json->video_url."&dl=1";
+                $data->video_view_count = $post_json->video_view_count;
+            }else{
+                $data->display_resources = $post_json->display_resources;
+            }
         }
-        return $this->download_url;
+
+        return json_encode($data);
     }
 
   /**
@@ -78,6 +134,7 @@ class InstagramDownload {
    */
     private function process(): void {
         $values = $this->fetch($this->input_url);
+        // $this->anakayam = $values;
         if (empty($values)) {
             throw new \RuntimeException('Error fetching information. Perhaps the post is private.', 3);
         }
@@ -136,7 +193,7 @@ class InstagramDownload {
 	 *
 	 * @return array<string>
 	 */
-    private function fetch(string $url): array {
+    private function fetch(string $url): string {
         $curl = \curl_init($url);
 
         if (!$curl) {
@@ -157,7 +214,8 @@ class InstagramDownload {
         \curl_close($curl);
 
         if(!empty($response) && \is_string($response)) {
-        return $this->parse($response);
+            return $response;
+        // return $this->parse($response);
         }
 
         throw new \RuntimeException('Could not fetch data.');
