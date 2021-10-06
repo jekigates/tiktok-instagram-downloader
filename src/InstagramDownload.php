@@ -83,8 +83,11 @@ class InstagramDownload {
         }
 
         $pos = strpos($this->input_url, '?');
-        $url = substr($this->input_url, 0, $pos).'?__a=1';
-        return json_decode($this->fetch($url));
+        if (isset($pos) && !empty($pos)) {
+            $url = substr($this->input_url, 0, $pos).'?__a=1';
+        }else{
+            $url = $this->input_url.'?__a=1';
+        }
 
         $post_json = json_decode($this->fetch($url))->graphql->shortcode_media;
 
@@ -117,6 +120,7 @@ class InstagramDownload {
             $data->post_data = $return_data;
         }else{
             $data->thumbnail = $post_json->display_url;
+            $data->is_video = $post_json->is_video;
             if($post_json->is_video){
                 $data->video_url = $post_json->video_url."&dl=1";
                 $data->video_view_count = $post_json->video_view_count;

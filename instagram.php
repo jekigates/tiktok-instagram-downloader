@@ -13,6 +13,34 @@
     img {
       object-fit: cover;
     }
+    .post{
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      word-wrap: break-word;
+      background-color: #fff;
+      background-clip: border-box;
+    }
+    .post-header{
+      padding: .5rem 1rem;
+      margin-bottom: 0;
+      background-color: rgba(0,0,0,.01);
+      border: 1px solid rgba(0,0,0,.125);
+      font-size: 12px;
+    }
+    .post-body{
+      flex: 1 1 auto;
+      padding: 1rem 1rem;
+      background-color: rgb(255,255,255);
+      border: 1px solid rgba(0,0,0,.125);
+    }
+    .profile-img{
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      margin-right: 1vw;
+    }
   </style>
 <body>
   <div class="container">
@@ -25,60 +53,112 @@
             <button class="btn btn-primary" type="submit" id="btn-download">Download</button>
           </div>
         </form>
-        <p class="text-secondary mt-2">Want to download TikTok videos? <a href="index.php" class="position-relative stretched-link">Click here</a></p>            
+        <p class="text-secondary mt-2">Want to download TikTok videos? <a href="index.php" class="position-relative stretched-link">Click here</a></p>
       </div>
     </div>
     <?php
     require_once('./src/InstagramDownload.php');
-
+    
     if (isset($_POST['url'])) {
       $url = $_POST['url'];
-      $client = new InstagramDownload($url);
-      
-      try {
-        $link_download = $client->getData();
-          
-          // header("Location: $link_download");
+      if (!empty(strpos($url, 'instagram.com/reel'))) {
+        $url = str_replace('instagram.com/reel','instagram.com/p',$url);
+      }
+      $post_data = new InstagramDownload($url);
       ?>
-        <hr>
-        <div class="row">
-          <div class="col-xl-auto col-md-auto col-sm-12 d-flex justify-content-center mb-4">
-            <img src="<?php echo $thumb; ?>" class="img-thumbnail" alt="" style="width: 20rem; height: auto;">
-          </div>
+      <hr>
+      <div class="row justify-content-center">
+      <?php
+      try {
+        $pd = json_decode($post_data->getData());
+        // print_r($pd);
 
-          <div class="col-xl-6 col-md-6 col-sm-12">
-            <div class="">
-              <table class="table">
-                <tr>
-                  <th>Creator</th>
-                  <td>:</td>
-                  <td>@<?php echo $username; ?></td>
-                </tr>
-                <tr>
-                  <th>Upload Date</th>
-                  <td>:</td>
-                  <td><?php echo $create_time; ?></td>
-                </tr>
-              </table>
-              <div class="d-grid gap-2 d-md-block">
-                <button class="btn btn-primary" type="button" onclick="window.location.href='<?php echo $wmUrl; ?>'">Download Video</button>
-                <button class="btn btn-info" type="button" onclick="window.location.href='<?php echo $cvUrl; ?>'">Download Video Without Watermark</button>
+        if ($pd->is_carousel) {
+          
+          foreach ($pd->post_data as $data ) {
+            
+            ?>
+            <div class="post m-3 p-0" style="width: 18rem; min-height: 15vh">
+              <div class="post-header d-flex flex-row align-items-center">
+                <img src="<?php echo 'data:image/jpg;base64,'.base64_encode(file_get_contents($pd->owner->profile_pic_url)) ?>" class="profile-img" alt="">
+                <p class="m-0"><?php echo $pd->owner->username ?></p>
               </div>
-              <div class="alert alert-primary mt-4" role="alert">
-                If the video opens directly, try saving it by pressing CTRL+S or on phone, save from three dots in the bottom left corner
+              <img src="<?php echo 'data:image/jpg;base64,'.base64_encode(file_get_contents($data->thumbnail)) ?>" class="" alt="" style="width: 100%; height: 100%;">
+              <div class="post-body">
+                <div class="d-flex flex-row mb-3 justify-content-around">
+                  <p class="m-0"><?php echo $pd->post_comments_count.' Comments'; ?></p>
+                <?php
+                  if ($data->is_video) {
+                    ?>
+                    <p class="m-0"><?php echo $data->video_view_count.' Views'; ?></p>
+                    </div>
+                    <div class="d-flex flex-column align-items-center ">
+                      <button class="btn btn-primary" onclick="window.open('<?php echo $data->video_url.'&dl=1' ?>' ,'_blank')">Download Video .mp4</button>
+                    </div>
+                    <?php
+                  }
+                  else {
+                    ?>
+                    </div>
+                    <div class="d-flex flex-column align-items-center ">
+                      <button class="btn btn-primary my-2" onclick="window.open('<?php echo $data->display_resources[0]->src.'&dl=1' ?>' ,'_blank')">Download Photo <?php echo $data->display_resources[0]->config_width.'x'.$data->display_resources[0]->config_height ?> </button>
+                      <button class="btn btn-primary my-2" onclick="window.open('<?php echo $data->display_resources[1]->src.'&dl=1' ?>' ,'_blank')">Download Photo <?php echo $data->display_resources[1]->config_width.'x'.$data->display_resources[1]->config_height ?> </button>
+                      <button class="btn btn-primary my-2" onclick="window.open('<?php echo $data->display_resources[2]->src.'&dl=1' ?>' ,'_blank')">Download Photo <?php echo $data->display_resources[2]->config_width.'x'.$data->display_resources[2]->config_height ?> </button>
+                    </div>
+                    <?php
+                  }
+                ?>
               </div>
             </div>
-          </div>
-        </div>
-        <?php
-        } catch (Exception $e) {
-          ?>
-          <script>
-            alert('Please check your Instagram content url again!');
-          </script>
           <?php
+          }
         }
-        unset($_POST);
+        else{
+          ?>
+          <div class="post m-3 p-0" style="width: 18rem; min-height: 15vh">
+            <div class="post-header d-flex flex-row align-items-center">
+              <img src="<?php echo 'data:image/jpg;base64,'.base64_encode(file_get_contents($pd->owner->profile_pic_url)) ?>" class="profile-img" alt="">
+              <p class="m-0"><?php echo $pd->owner->username ?></p>
+            </div>
+            <img src="<?php echo 'data:image/jpg;base64,'.base64_encode(file_get_contents($pd->thumbnail)) ?>" class="" alt="" style="width: 100%; height: 100%;">
+            <div class="post-body">
+              <div class="d-flex flex-row mb-3 justify-content-around">
+                <p class="m-0"><?php echo $pd->post_comments_count.' Comments'; ?></p>
+              <?php
+                if ($pd->is_video) {
+                  ?>
+                  <p class="m-0"><?php echo $pd->video_view_count.' Views'; ?></p>
+                  </div>
+                  <div class="d-flex flex-column align-items-center ">
+                    <button class="btn btn-primary" onclick="window.open('<?php echo $pd->video_url.'&dl=1' ?>' ,'_blank')">Download Video .mp4</button>
+                  </div>
+                  <?php
+                }
+                else {
+                  ?>
+                  </div>
+                  <div class="d-flex flex-column align-items-center ">
+                    <button class="btn btn-primary my-2" onclick="window.open('<?php echo $pd->display_resources[0]->src.'&dl=1' ?>' ,'_blank')">Download Photo <?php echo $pd->display_resources[0]->config_width.'x'.$pd->display_resources[0]->config_height ?> </button>
+                    <button class="btn btn-primary my-2" onclick="window.open('<?php echo $pd->display_resources[1]->src.'&dl=1' ?>' ,'_blank')">Download Photo <?php echo $pd->display_resources[1]->config_width.'x'.$pd->display_resources[1]->config_height ?> </button>
+                    <button class="btn btn-primary my-2" onclick="window.open('<?php echo $pd->display_resources[2]->src.'&dl=1' ?>' ,'_blank')">Download Photo <?php echo $pd->display_resources[2]->config_width.'x'.$pd->display_resources[2]->config_height ?> </button>
+                  </div>
+                  <?php
+                }
+              ?>
+            </div>
+          </div>
+      <?php }
+      ?></div><?php
+      }catch (Exception $e) {
+        // print_r($e);
+        ?>
+        <script>
+          alert('Please check your Instagram content url again!');
+          window.location.href = './<?php echo basename($_SERVER['PHP_SELF']) ?>'
+        </script>
+        <?php
+      }
+      unset($_POST);
     }
     ?>
   </div>
