@@ -69,17 +69,17 @@ function getContent($url, $geturl = false)
 		if (isset($_POST['tiktok-url']) && !empty($_POST['tiktok-url'])) {
 			$url = trim($_POST['tiktok-url']);
 			$resp = getContent($url);
-			$check = explode('"downloadAddr":"', $resp);
-			if (count($check) > 1){
+      $urls = getContent("https://godownloader.com/api/tiktok-no-watermark-free?url=$url&key=godownloader.com");
+      // print_r($urls);
+			if (!isset(json_decode($urls)->error)){
 				$thumb = explode("\"",explode('og:image" content="', $resp)[1])[0];
 				$username = explode('/',explode('"$pageUrl":"/@', $resp)[1])[0];
 				$create_time = explode(',', explode('"createTime":', $resp)[1])[0];
 				$dt = new DateTime("@$create_time");
 				$create_time = $dt->format("d M Y H:i:s A");
 
-                $urls = getContent("https://godownloader.com/api/tiktok-no-watermark-free?url=$url&key=godownloader.com");
-                $wmUrl = json_decode($urls)->video_watermark;
-                $cvUrl = json_decode($urls)->video_no_watermark;
+        $wmUrl = json_decode($urls)->video_watermark;
+        $cvUrl = json_decode($urls)->video_no_watermark;
 		?>
         <hr>
         <div class="row">
